@@ -1,26 +1,385 @@
 @import "tailwindcss";
 
+/*
+  VANTA / R1
+  The brand is defined by darkness, so the theme is locked dark on purpose.
+  One accent (--signal) is reserved for instrumentation, warnings and focus.
+  Corner radius is zero everywhere.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --void: #060708;
+  --carbon: #0c0d0f;
+  --graphite: #1b1e22;
+  --ash: #8a9099;
+  --alloy: #c4c8ce;
+  --bone: #e7e4de;
+  --signal: #e4572e;
+
+  /* z-scale: back type sits under the WebGL stage, content above it */
+  --z-back: 0;
+  --z-stage: 1;
+  --z-content: 2;
+  --z-hud: 3;
+  --z-cursor: 4;
+  --z-loader: 5;
+
+  --gutter: clamp(16px, 2.6vw, 44px);
+  --ease-mech: cubic-bezier(0.7, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-void: var(--void);
+  --color-carbon: var(--carbon);
+  --color-graphite: var(--graphite);
+  --color-ash: var(--ash);
+  --color-alloy: var(--alloy);
+  --color-bone: var(--bone);
+  --color-signal: var(--signal);
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-martian), ui-monospace, monospace;
+  --radius-none: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-radius: 0;
+}
+
+html {
+  background: var(--void);
+  color: var(--bone);
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--font-display);
+  font-weight: 400;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+::selection {
+  background: var(--bone);
+  color: var(--void);
+}
+
+:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 3px;
+}
+
+@layer components {
+/* ---------- Typography primitives ---------- */
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-stretch: 82%;
+  font-size: 10.5px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-feature-settings: "zero" 1, "tnum" 1;
+}
+.t-mono-lg {
+  font-family: var(--font-mono);
+  font-stretch: 78%;
+  font-size: clamp(12px, 0.95vw, 14px);
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-feature-settings: "zero" 1, "tnum" 1;
+}
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 760;
+  font-stretch: 112%;
+  line-height: 0.86;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.t-numeral {
+  font-family: var(--font-display);
+  font-weight: 860;
+  font-stretch: 125%;
+  line-height: 0.74;
+  letter-spacing: -0.06em;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.t-statement {
+  font-family: var(--font-display);
+  font-weight: 640;
+  font-stretch: 100%;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.t-condensed {
+  font-family: var(--font-display);
+  font-weight: 560;
+  font-stretch: 62%;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* line-mask wrapper used for typographic clipping reveals */
+.mask-line {
+  display: block;
+  overflow: clip;
+  padding-bottom: 0.04em;
+  margin-bottom: -0.04em;
+}
+.mask-line > span {
+  display: block;
+  will-change: transform;
+}
+}
+
+/* ---------- Layer stack ---------- */
+
+.layer-back {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-back);
+  pointer-events: none;
+  overflow: clip;
+}
+.layer-stage {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-stage);
+  pointer-events: none;
+}
+.layer-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.layer-content {
+  position: relative;
+  z-index: var(--z-content);
+}
+
+/* Each scene is a tall scroll range. Its stage is fixed and only shown while the director
+   marks the scene current, so the page never simply slides between scenes. Inactive stages
+   stay in the accessibility tree (opacity, not visibility) and focus scrolls to them. */
+.scene {
+  position: relative;
+  width: 100%;
+  height: calc(var(--h-d) * 1svh);
+}
+@media (max-aspect-ratio: 100/108) {
+  .scene {
+    height: calc(var(--h-m) * 1svh);
+  }
+}
+.scene.scene-flow {
+  height: auto;
+}
+.scene-stage {
+  position: fixed;
+  inset: 0;
+  height: 100svh;
+  overflow: clip;
+  opacity: 0;
+  pointer-events: none;
+}
+.scene[data-on="1"] .scene-stage {
+  opacity: 1;
+}
+.scene[data-on="1"] .scene-stage .interactive {
+  pointer-events: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@layer components {
+/* ---------- Controls ---------- */
+
+.btn-solid,
+.btn-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  height: 52px;
+  padding: 0 22px;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-stretch: 82%;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 160ms var(--ease-out), background-color 240ms var(--ease-out),
+    color 240ms var(--ease-out), border-color 240ms var(--ease-out);
+}
+.btn-solid {
+  background: var(--bone);
+  color: var(--void);
+}
+.btn-solid:hover {
+  background: #ffffff;
+}
+.btn-line {
+  border: 1px solid rgb(231 228 222 / 0.34);
+  color: var(--bone);
+  background: rgb(6 7 8 / 0.4);
+}
+.btn-line:hover {
+  border-color: var(--bone);
+}
+.btn-solid:active,
+.btn-line:active {
+  transform: translateY(1px);
+}
+
+/* hairline used by measurement drawings */
+.hair {
+  stroke: var(--alloy);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-custom-cursor="1"],
+  html[data-custom-cursor="1"] * {
+    cursor: none;
+  }
+  html[data-custom-cursor="1"] input,
+  html[data-custom-cursor="1"] select,
+  html[data-custom-cursor="1"] textarea,
+  html[data-custom-cursor="1"] dialog,
+  html[data-custom-cursor="1"] dialog * {
+    cursor: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
+
+@media print {
+  body > *:not(dialog) {
+    display: none !important;
+  }
+}
+
+/* back type: one group per scene, shown while that scene is current */
+.back-item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+html[data-active-scene="reveal"] .back-item[data-back="reveal"],
+html[data-active-scene="mass"] .back-item[data-back="mass"],
+html[data-active-scene="aero"] .back-item[data-back="aero"],
+html[data-active-scene="exploded"] .back-item[data-back="exploded"],
+html[data-active-scene="power"] .back-item[data-back="power"],
+html[data-active-scene="interface"] .back-item[data-back="interface"],
+html[data-active-scene="motion"] .back-item[data-back="motion"],
+html[data-active-scene="ninety"] .back-item[data-back="ninety"],
+html[data-active-scene="final"] .back-item[data-back="final"] {
+  opacity: 1;
+}
+.back-item.poster ~ .back-item:not(.poster) {
+  display: none;
+}
+
+/* in-flow scenes hide their content unless current, so nothing slides in early */
+.scene-flow[data-on="0"] .flow {
+  visibility: hidden;
+}
+.scene-flow + .scene {
+  margin-top: -100svh;
+}
+
+/* dialogs: a sheet from the right */
+dialog.sheet::backdrop {
+  background: rgb(6 7 8 / 0.72);
+  backdrop-filter: blur(6px);
+}
+dialog.sheet[open] {
+  animation: sheet-in 520ms var(--ease-out);
+}
+@keyframes sheet-in {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+select.block {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ash) 50%), linear-gradient(135deg, var(--ash) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+@media print {
+  dialog.sheet {
+    position: static;
+    width: 100%;
+    height: auto;
+    border: 0;
+    background: #fff;
+    color: #000;
+  }
+  dialog.sheet * {
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+  dialog.sheet button {
+    display: none;
+  }
+}
+
+/* initial state for mask reveals; GSAP animates transform (never the translate property) */
+@layer components {
+  .from-below {
+    transform: translateY(110%);
+  }
+}
+
+/* poster capture mode (scripts/posters.mjs): stage only */
+html[data-poster] .layer-content,
+html[data-poster] .layer-back,
+html[data-poster] [data-hud] {
+  visibility: hidden !important;
 }
